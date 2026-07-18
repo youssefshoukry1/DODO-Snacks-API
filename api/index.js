@@ -3,8 +3,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const productRoutes = require('./Routes/product');
-const orderRoutes = require('./Routes/order');
+const productRoutes = require('../Routes/product');
+const orderRoutes = require('../Routes/order');
 
 const app = express();
 
