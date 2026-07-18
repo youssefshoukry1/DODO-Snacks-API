@@ -11,7 +11,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// مسار افتراضي للتأكد من أن السيرفر يعمل (يمنع ظهور الـ 404 عند فتح الرابط الرئيسي)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/snax';
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb) {
+    return cachedDb;
+  }
+  const client = await mongoose.connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+  cachedDb = client;
+  return client;
+}
+
+// Attach a middleware to ensure database is connected on every request
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
+
+// مسار افتراضي للتأكد من أن السيرفر يعمل
 app.get('/', (req, res) => {
   res.send('Dodo Snacks API is running...');
 });
@@ -20,12 +46,4 @@ app.get('/', (req, res) => {
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/snax';
-
-// الاتصال بقاعدة البيانات بشكل منفصل حتى لا يعطل تشغيل الـ Serverless Function
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.log('Error connecting to MongoDB', err));
-
-// تصدير التطبيق وهو الخطوة الأهم لكي يقرأه Vercel
 module.exports = app;
